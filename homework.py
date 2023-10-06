@@ -10,7 +10,12 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import NoEnvVarException, UnexpectedStatusCodeException
+from exceptions import (
+    ChatIDIsDigitException,
+    NoEnvVarException,
+    SendMessageException,
+    UnexpectedStatusCodeException,
+)
 
 load_dotenv()
 
@@ -32,11 +37,18 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Checks the accessibility of the environmental variables."""
-    env_vars = [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]
-    if all(env_vars) is False or any(env_vars) == '':
+    env_vars = (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,)
+    if not all([var for var in env_vars]):
         raise NoEnvVarException(
             'Отсутствуют обязательные переменные окружения'
         )
+
+    # Если присвоить TELEGRAM_CHAT_ID в .env значение None,
+    # проверка на токены все равно проходит,
+    # поэтому отдельно проверяю числовой идентификатор
+
+    if not TELEGRAM_CHAT_ID.isdigit():
+        raise ChatIDIsDigitException('Идентификатор должен быть числовым.')
 
 
 def send_message(bot, message):
@@ -44,8 +56,9 @@ def send_message(bot, message):
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
     except telegram.TelegramError as error:
-        logging.error(f'Сбой при отправке сообщения:{error}')
-        raise telegram.TelegramError(f'{error}')
+        error_massage = f'Сбой при отправке сообщения:{error}'
+        logging.error(error_massage)
+        raise SendMessageException from error(error_massage)
 
     logging.debug('Сообщение успешно отправлено!')
 
@@ -66,17 +79,14 @@ def get_api_answer(timestamp):
 
     if response.status_code != http.HTTPStatus.OK:
         status_code = response.status_code
-        logging.error('Неожиданный статус запроса')
-        raise UnexpectedStatusCodeException(
-            f'Неожиданный статус запроса: {status_code}'
-        )
+        error_message = f'Неожиданный статус запроса: {status_code}'
+        logging.error(error_message)
+        raise UnexpectedStatusCodeException(error_message)
 
     try:
-        response.json()
+        return response.json()
     except json.JSONDecodeError:
         logging.error('Невалидный JSON')
-
-    return response.json()
 
 
 def check_response(response):
@@ -159,8 +169,7 @@ def main():
             message = parse_status(homework)
             send_message(bot, message)
         except Exception as error:
-            message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
+            logging.error(f'Сбой в работе программы: {error}')
         finally:
             time.sleep(RETRY_PERIOD)
             timestamp = current_timestamp
@@ -176,4 +185,5 @@ if __name__ == '__main__':
         '%(asctime)s, %(levelname)s, %(message)s'
     )
     handler.setFormatter(formatter)
+
     main()
