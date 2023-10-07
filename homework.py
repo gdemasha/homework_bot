@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 
 from exceptions import (
     ChatIDIsDigitException,
+    InvalidJSonException,
     NoEnvVarException,
     SendMessageException,
     UnexpectedStatusCodeException,
@@ -38,12 +39,12 @@ HOMEWORK_VERDICTS = {
 def check_tokens():
     """Checks the accessibility of the environmental variables."""
     env_vars = (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,)
-    if not all([var for var in env_vars]):
+    if not all((var for var in env_vars)):
         raise NoEnvVarException(
             'Отсутствуют обязательные переменные окружения'
         )
 
-    # Если присвоить TELEGRAM_CHAT_ID в .env значение None,
+    # Если присвоить TELEGRAM_CHAT_ID в .env нечисловое значение,
     # проверка на токены все равно проходит,
     # поэтому отдельно проверяю числовой идентификатор
 
@@ -85,8 +86,10 @@ def get_api_answer(timestamp):
 
     try:
         return response.json()
-    except json.JSONDecodeError:
-        logging.error('Невалидный JSON')
+    except json.JSONDecodeError as error:
+        error_message = f'Невалидный JSON: {error}'
+        logging.error(error_message)
+        InvalidJSonException(error_message)
 
 
 def check_response(response):
@@ -168,8 +171,12 @@ def main():
             homework = homeworks[0]
             message = parse_status(homework)
             send_message(bot, message)
+        except SendMessageException:
+            pass
         except Exception as error:
-            logging.error(f'Сбой в работе программы: {error}')
+            error_message = f'Сбой в работе программы: {error}'
+            logging.error(error_message)
+            send_message(bot, error_message)
         finally:
             time.sleep(RETRY_PERIOD)
             timestamp = current_timestamp

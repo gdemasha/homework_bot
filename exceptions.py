@@ -20,3 +20,9 @@ class ChatIDIsDigitException(Exception):
     """A custom exception for checking if chat ID is a digit."""
 
     pass
+
+
+class InvalidJSonException(Exception):
+    """A custom exception for invalid JSON."""
+
+    pass
