@@ -38,8 +38,7 @@ HOMEWORK_VERDICTS = {
 
 def check_tokens():
     """Checks the accessibility of the environmental variables."""
-    env_vars = (PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,)
-    if not all((var for var in env_vars)):
+    if not all((PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID,)):
         raise NoEnvVarException(
             'Отсутствуют обязательные переменные окружения'
         )
@@ -156,9 +155,9 @@ def main():
     """Base logic of the bot functioning."""
     try:
         check_tokens()
-    except NoEnvVarException:
-        logging.critical('Отсутствуют обязательные переменные окружения')
-        sys.exit()
+    except NoEnvVarException as error:
+        logging.critical(f'{error}')
+        sys.exit(1)
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     timestamp = int(time.time())
