@@ -1,6 +1,6 @@
 # Бот-ассистент
 
-Стек: Telegram Bot Api, logging, request
+Стек: Telegram Bot Api, logging, requests, time
 
 ## Описание
 
